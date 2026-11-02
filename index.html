@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Nhận key</title>
+<style>
+:root{--bg:#eef1f5;--card:#fff;--ink:#17212b;--mute:#5b6773;--line:#d5dbe3;--acc:#2457d6;--acc-ink:#fff;--bad:#b3261e}
+@media (prefers-color-scheme:dark){:root{--bg:#10151b;--card:#18202a;--ink:#e8edf2;--mute:#9aa7b4;--line:#2a3441;--acc:#6f95ff;--acc-ink:#0b1220;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;text-align:center}
+h1{font-size:1.25rem;margin:0 0 8px}
+p{margin:8px 0;color:var(--mute)}
+p.bad{color:var(--bad)}
+.key{font:700 1.7rem/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;padding:16px;margin:16px 0;border:1px dashed var(--line);border-radius:10px;word-break:break-all;user-select:all}
+button{font:inherit;font-weight:600;width:100%;padding:12px 16px;border:0;border-radius:8px;background:var(--acc);color:var(--acc-ink)}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Đang lấy key...</h1>
+  <div class="key" id="key" hidden></div>
+  <button id="copy" hidden>Sao chép key</button>
+  <p id="info">Vui lòng chờ một chút.</p>
+</main>
+
+<script>
+const API = 'https://pshqmstyjfqbkwxdisxy.supabase.co/functions/v1/api';
+const KEY = 'sb_publishable_f8ZqvUYGVdt1B12T1n7wgw_5HyEbTXL';
+const $ = id => document.getElementById(id);
+const token = new URLSearchParams(location.search).get('t');
+
+function showError(msg) {
+  $('title').textContent = 'Chưa nhận được key';
+  $('info').textContent = msg;
+  $('info').className = 'bad';
+}
+
+async function run() {
+  if (!token) return showError('Link không hợp lệ. Hãy quay lại app và lấy link mới.');
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { apikey: KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'claim', token })
+    });
+    const d = await r.json();
+    if (!r.ok || d.error) return showError(d.message || 'Có lỗi xảy ra, hãy thử lại.');
+    $('title').textContent = 'Key của bạn';
+    $('key').textContent = d.key;
+    $('key').hidden = false;
+    $('copy').hidden = false;
+    const exp = d.expires_at ? new Date(d.expires_at).toLocaleString('vi-VN') : '';
+    $('info').textContent = (d.item ? 'Dùng cho: ' + d.item + '. ' : '') +
+      (exp ? 'Hết hạn lúc ' + exp + '. ' : '') + 'Quay lại app và nhập key này.';
+    $('info').className = '';
+  } catch (e) {
+    showError('Không kết nối được. Kiểm tra mạng rồi tải lại trang.');
+  }
+}
+
+$('copy').onclick = async () => {
+  try {
+    await navigator.clipboard.writeText($('key').textContent);
+    $('copy').textContent = 'Đã sao chép ✓';
+  } catch (e) {
+    const s = getSelection(), r = document.createRange();
+    r.selectNodeContents($('key'));
+    s.removeAllRanges(); s.addRange(r);
+    $('copy').textContent = 'Hãy giữ vào key và chọn Sao chép';
+  }
+};
+
+run();
+</script>
+</body>
+</html>
